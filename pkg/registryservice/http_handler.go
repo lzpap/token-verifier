@@ -78,7 +78,3 @@ func (h *HTTPHandler) LoadAssets(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, result)
 }
-
-func (h *HTTPHandler) SetRoutes(mux *echo.Group) {
-	mux.POST(registryhttp.SaveAssetsEndpoint, h.SaveAssets)
-}
