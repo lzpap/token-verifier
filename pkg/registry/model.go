@@ -12,6 +12,8 @@ type Asset struct {
 	Name string `json:"name" bson:"name"`
 	// Symbol defines the symbol of the asset.
 	Symbol string `json:"symbol" bson:"symbol"`
+	// Supply defines the original total supply of the asset.
+	Supply uint64 `json:"supply" bson:"supply"`
 }
 
 type Service interface {
