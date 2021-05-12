@@ -12,7 +12,8 @@ services:
     volumes:
       - mongodb_data_container:/data/db
 
-  asset_registry:
+  API_server:
+    container_name: API_server
     image: asset-registry:latest
     ports:
       - "127.0.0.1:8080:80/tcp"
