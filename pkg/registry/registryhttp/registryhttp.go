@@ -1,6 +1,9 @@
 package registryhttp
 
-const SaveAssetsEndpoint = "/asssets"
+const (
+	RegistriesEndpoint = "/registries"
+	AssetsEndpoint     = "/assets"
+)
 
 type ErrorResponse struct {
 	Error string `json:"error"`
