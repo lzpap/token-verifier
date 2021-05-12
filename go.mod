@@ -1,4 +1,4 @@
-module github.com/iotaledger/goshimmer-metrics
+module github.com/capossele/asset-registry
 
 go 1.16
 
