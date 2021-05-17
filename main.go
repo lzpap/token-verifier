@@ -41,7 +41,7 @@ func main() {
 	server.HidePort = true
 
 	server.GET("/", IndexRequest)
-	server.POST("/registries/:network/assets", httpHandler.SaveAssets)
+	server.POST("/registries/:network/assets", httpHandler.SaveAsset)
 	server.GET("/registries/:network/assets", httpHandler.LoadAssets)
 	server.GET("/registries/:network/assets/:ID", httpHandler.LoadAsset)
 

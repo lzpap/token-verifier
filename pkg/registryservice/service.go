@@ -17,12 +17,8 @@ func NewService(mongoDB *mongo.Database) *Service {
 	return &Service{db: mongoDB}
 }
 
-func (s *Service) SaveAssets(ctx context.Context, network string, assets []*registry.Asset) error {
-	docs := make([]interface{}, len(assets))
-	for i, record := range assets {
-		docs[i] = record
-	}
-	_, err := s.db.Collection(network).InsertMany(ctx, docs)
+func (s *Service) SaveAsset(ctx context.Context, network string, asset *registry.Asset) error {
+	_, err := s.db.Collection(network).InsertOne(ctx, asset)
 	return errors.Wrap(err, "failed to insert assets into mongo collection")
 }
 
@@ -60,6 +56,17 @@ func (s *Service) LoadAssets(ctx context.Context, network string, IDs ...string)
 			return
 		}
 		assets = append(assets, asset)
+	}
+
+	return
+}
+
+func (s *Service) LoadAsset(ctx context.Context, network string, ID string) (asset *registry.Asset, err error) {
+	// Query One
+	result := s.db.Collection(network).FindOne(ctx, bson.M{"ID": ID})
+	err = result.Decode(&asset)
+	if err != nil {
+		return
 	}
 
 	return

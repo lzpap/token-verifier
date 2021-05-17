@@ -34,22 +34,22 @@ func networkAllowed(network string) bool {
 	return networks[network]
 }
 
-func (h *HTTPHandler) SaveAssets(c echo.Context) error {
+func (h *HTTPHandler) SaveAsset(c echo.Context) error {
 	ctx := c.Request().Context()
 	network := c.Param("network")
 	if !networkAllowed(network) {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
-	var assets []*registry.Asset
-	if err := json.NewDecoder(c.Request().Body).Decode(&assets); err != nil {
-		err = errors.Wrap(err, "failed to parse request body as JSON into a list assets")
+	var asset *registry.Asset
+	if err := json.NewDecoder(c.Request().Body).Decode(&asset); err != nil {
+		err = errors.Wrap(err, "failed to parse request body as JSON into an asset")
 		h.logger.Infow("Invalid http request", "error", err)
 		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(err))
 	}
-	if err := h.service.SaveAssets(ctx, network, assets); err != nil {
+	if err := h.service.SaveAsset(ctx, network, asset); err != nil {
 		return errors.Wrap(err, "service failed to save Assets")
 	}
-	return c.JSON(http.StatusCreated, assets)
+	return c.JSON(http.StatusCreated, asset)
 }
 
 func (h *HTTPHandler) LoadAsset(c echo.Context) error {
@@ -59,7 +59,7 @@ func (h *HTTPHandler) LoadAsset(c echo.Context) error {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
 	ID := c.Param("ID")
-	result, err := h.service.LoadAssets(ctx, network, ID)
+	result, err := h.service.LoadAsset(ctx, network, ID)
 	if err != nil {
 		return errors.Wrap(err, "service failed to save Assets")
 	}

@@ -16,7 +16,7 @@ services:
     container_name: API_server
     image: asset-registry:latest
     ports:
-      - "127.0.0.1:8080:80/tcp"
+      - "127.0.0.1:7070:80/tcp"
     depends_on: 
       - mongodb_container
 

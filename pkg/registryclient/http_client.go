@@ -17,10 +17,10 @@ func NewHTTPClient(restyClient *resty.Client) *HTTPClient {
 	return &HTTPClient{client: restyClient}
 }
 
-func (c *HTTPClient) SaveAssets(ctx context.Context, network string, assets []*registry.Asset) error {
+func (c *HTTPClient) SaveAsset(ctx context.Context, network string, asset *registry.Asset) error {
 	resp, err := c.client.R().
 		SetContext(ctx).
-		SetBody(assets).
+		SetBody(asset).
 		SetError(&registryhttp.ErrorResponse{}).
 		Post(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.AssetsEndpoint)
 	if err != nil {
@@ -50,4 +50,20 @@ func (c *HTTPClient) LoadAssets(ctx context.Context, network string, assets ...s
 	}
 	errorResp := resp.Error().(*registryhttp.ErrorResponse)
 	return errors.Newf("loadAssets HTTP call returns an error: %s", errorResp.Error)
+}
+
+func (c *HTTPClient) LoadAsset(ctx context.Context, network string, asset string) error {
+	assetID := "/" + asset
+	resp, err := c.client.R().
+		SetContext(ctx).
+		SetError(&registryhttp.ErrorResponse{}).
+		Get(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.AssetsEndpoint + assetID)
+	if err != nil {
+		return errors.Wrap(err, "failed to execute loadAssets HTTP call")
+	}
+	if resp.IsSuccess() {
+		return nil
+	}
+	errorResp := resp.Error().(*registryhttp.ErrorResponse)
+	return errors.Newf("loadAsset HTTP call returns an error: %s", errorResp.Error)
 }

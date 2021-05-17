@@ -19,6 +19,7 @@ type Asset struct {
 }
 
 type Service interface {
-	SaveAssets(ctx context.Context, network string, records []*Asset) error
+	SaveAsset(ctx context.Context, network string, record *Asset) error
 	LoadAssets(ctx context.Context, network string, ID ...string) ([]*Asset, error)
+	LoadAsset(ctx context.Context, network string, ID string) (*Asset, error)
 }
