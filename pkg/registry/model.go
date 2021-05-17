@@ -14,6 +14,8 @@ type Asset struct {
 	Symbol string `json:"symbol" bson:"symbol"`
 	// Supply defines the original total supply of the asset.
 	Supply uint64 `json:"supply" bson:"supply"`
+	// TransactionID defines the transaction ID (base58 encoded) that created this asset.
+	TransactionID string `json:"transactionID" bson:"transactionID"`
 }
 
 type Service interface {
