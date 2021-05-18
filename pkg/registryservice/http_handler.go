@@ -61,7 +61,7 @@ func (h *HTTPHandler) LoadAsset(c echo.Context) error {
 	ID := c.Param("ID")
 	result, err := h.service.LoadAsset(ctx, network, ID)
 	if err != nil {
-		return errors.Wrap(err, "service failed to save Assets")
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to load Asset"))
 	}
 	return c.JSON(http.StatusOK, result)
 }
@@ -74,7 +74,7 @@ func (h *HTTPHandler) LoadAssets(c echo.Context) error {
 	}
 	result, err := h.service.LoadAssets(ctx, network)
 	if err != nil {
-		return errors.Wrap(err, "service failed to save Assets")
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to load Assets"))
 	}
 	return c.JSON(http.StatusOK, result)
 }
