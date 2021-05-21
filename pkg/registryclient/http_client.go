@@ -2,11 +2,13 @@ package registryclient
 
 import (
 	"context"
+	"encoding/json"
+
+	"github.com/cockroachdb/errors"
+	"github.com/go-resty/resty/v2"
 
 	"github.com/capossele/asset-registry/pkg/registry"
 	"github.com/capossele/asset-registry/pkg/registry/registryhttp"
-	"github.com/cockroachdb/errors"
-	"github.com/go-resty/resty/v2"
 )
 
 type HTTPClient struct {
@@ -52,18 +54,23 @@ func (c *HTTPClient) LoadAssets(ctx context.Context, network string, assets ...s
 	return errors.Newf("loadAssets HTTP call returns an error: %s", errorResp.Error)
 }
 
-func (c *HTTPClient) LoadAsset(ctx context.Context, network string, asset string) error {
+func (c *HTTPClient) LoadAsset(ctx context.Context, network string, asset string) (*registry.Asset, error) {
 	assetID := "/" + asset
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetError(&registryhttp.ErrorResponse{}).
 		Get(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.AssetsEndpoint + assetID)
 	if err != nil {
-		return errors.Wrap(err, "failed to execute loadAssets HTTP call")
+		return nil, errors.Wrap(err, "failed to execute loadAssets HTTP call")
 	}
+	assetStruct :=  &registry.Asset{}
 	if resp.IsSuccess() {
-		return nil
+		parseErr := json.Unmarshal(resp.Body(), assetStruct)
+		if parseErr != nil {
+			return nil, errors.Errorf("failed to parse asset in response body: %w", parseErr)
+		}
+		return assetStruct, nil
 	}
 	errorResp := resp.Error().(*registryhttp.ErrorResponse)
-	return errors.Newf("loadAsset HTTP call returns an error: %s", errorResp.Error)
+	return nil, errors.Newf("loadAsset HTTP call returns an error: %s", errorResp.Error)
 }

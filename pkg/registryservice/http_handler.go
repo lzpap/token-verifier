@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	networks = map[string]bool{
+	Networks = map[string]bool{
 		"pollen":   true,
 		"nectar":   true,
 		"internal": true,
@@ -31,7 +31,7 @@ func NewHTTPHandler(service registry.Service, logger *zap.SugaredLogger) *HTTPHa
 }
 
 func networkAllowed(network string) bool {
-	return networks[network]
+	return Networks[network]
 }
 
 func (h *HTTPHandler) SaveAsset(c echo.Context) error {
