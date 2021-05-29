@@ -2,6 +2,7 @@ package registryservice
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/cockroachdb/errors"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/capossele/asset-registry/pkg/registry"
 	"github.com/capossele/asset-registry/pkg/registry/registryhttp"
+	"github.com/capossele/swearfilter"
 )
 
 var (
@@ -24,10 +26,12 @@ var (
 type HTTPHandler struct {
 	service registry.Service
 	logger  *zap.SugaredLogger
+
+	filter *swearfilter.SwearFilter
 }
 
 func NewHTTPHandler(service registry.Service, logger *zap.SugaredLogger) *HTTPHandler {
-	return &HTTPHandler{service: service, logger: logger}
+	return &HTTPHandler{service: service, logger: logger, filter: swearfilter.NewSwearFilter(true, badWords...)}
 }
 
 func networkAllowed(network string) bool {
@@ -46,6 +50,21 @@ func (h *HTTPHandler) SaveAsset(c echo.Context) error {
 		h.logger.Infow("Invalid http request", "error", err)
 		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(err))
 	}
+
+	// filter
+	match, _ := h.filter.Check(asset.Name)
+	if len(match) > 0 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden", asset.Name))
+	}
+	match, _ = h.filter.Check(asset.ID)
+	if len(match) > 0 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden", asset.ID))
+	}
+	match, _ = h.filter.Check(asset.Symbol)
+	if len(match) > 0 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden", asset.Symbol))
+	}
+
 	if err := h.service.SaveAsset(ctx, network, asset); err != nil {
 		return errors.Wrap(err, "service failed to save Assets")
 	}
@@ -77,4 +96,46 @@ func (h *HTTPHandler) LoadAssets(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to load Assets"))
 	}
 	return c.JSON(http.StatusOK, result)
+}
+
+func (h *HTTPHandler) DeleteAssetByID(c echo.Context) error {
+	ctx := c.Request().Context()
+	network := c.Param("network")
+	if !networkAllowed(network) {
+		return c.JSON(http.StatusForbidden, "network not allowed")
+	}
+	ID := c.Param("ID")
+	err := h.service.DeleteAssetByID(ctx, network, ID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to delete the Asset"))
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
+func (h *HTTPHandler) DeleteAssetByName(c echo.Context) error {
+	ctx := c.Request().Context()
+	network := c.Param("network")
+	if !networkAllowed(network) {
+		return c.JSON(http.StatusForbidden, "network not allowed")
+	}
+	name := c.Param("name")
+	err := h.service.DeleteAssetByName(ctx, network, name)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to delete the Asset"))
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
+func (h *HTTPHandler) LoadFilter(c echo.Context) error {
+	result := h.filter.Load()
+	return c.JSON(http.StatusOK, result)
+}
+
+func (h *HTTPHandler) AddFilter(c echo.Context) error {
+	word := c.Param("word")
+	if len(word) == 0 {
+		return c.JSON(http.StatusBadRequest, "invalid empty-string as filter")
+	}
+	h.filter.Add(word)
+	return c.JSON(http.StatusOK, word)
 }

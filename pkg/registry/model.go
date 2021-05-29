@@ -22,4 +22,6 @@ type Service interface {
 	SaveAsset(ctx context.Context, network string, record *Asset) error
 	LoadAssets(ctx context.Context, network string, ID ...string) ([]*Asset, error)
 	LoadAsset(ctx context.Context, network string, ID string) (*Asset, error)
+	DeleteAssetByID(ctx context.Context, network string, ID string) error
+	DeleteAssetByName(ctx context.Context, network string, name string) error
 }

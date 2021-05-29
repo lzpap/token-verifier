@@ -17,6 +17,9 @@ services:
     image: asset-registry:latest
     ports:
       - "127.0.0.1:7070:80/tcp"
+    command: >
+      --basicAuthUser=admin
+      --basicAuthPassword=secret
     depends_on: 
       - mongodb_container
 

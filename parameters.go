@@ -7,4 +7,7 @@ var (
 	mongoDBpassword = flag.String("password", "password", "mongoDB password")
 	mongoDBHostAddr = flag.String("hostAddr", "mongodb:27017", "mongoDB host address")
 	httpBindAddr    = flag.String("httpBindAddr", "0.0.0.0:80", "http server bind address")
+
+	basicAuthUser     = flag.String("basicAuthUser", "admin", "basic auth user")
+	basicAuthPassword = flag.String("basicAuthPassword", "secret", "basic auth password")
 )

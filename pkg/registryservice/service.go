@@ -71,3 +71,15 @@ func (s *Service) LoadAsset(ctx context.Context, network string, ID string) (ass
 
 	return
 }
+
+func (s *Service) DeleteAssetByID(ctx context.Context, network string, ID string) (err error) {
+	// Delete all
+	_, err = s.db.Collection(network).DeleteMany(ctx, bson.M{"ID": ID})
+	return
+}
+
+func (s *Service) DeleteAssetByName(ctx context.Context, network string, name string) (err error) {
+	// Delete all
+	_, err = s.db.Collection(network).DeleteMany(ctx, bson.M{"name": name})
+	return
+}
