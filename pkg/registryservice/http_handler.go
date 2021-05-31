@@ -54,15 +54,15 @@ func (h *HTTPHandler) SaveAsset(c echo.Context) error {
 	// filter
 	match, _ := h.filter.Check(asset.Name)
 	if len(match) > 0 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden", asset.Name))
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", asset.Name, match))
 	}
 	match, _ = h.filter.Check(asset.ID)
 	if len(match) > 0 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden", asset.ID))
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", asset.ID, match))
 	}
 	match, _ = h.filter.Check(asset.Symbol)
 	if len(match) > 0 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden", asset.Symbol))
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", asset.Symbol, match))
 	}
 
 	if err := h.service.SaveAsset(ctx, network, asset); err != nil {
