@@ -18,6 +18,8 @@ github.com/capossele/swearfilter v0.0.0-20210529182608-92d2f128104d h1:UnE+UY9+F
 github.com/capossele/swearfilter v0.0.0-20210529182608-92d2f128104d/go.mod h1:o9FL1PqH9TDbRHkjLVuwxoEQHt/farzdaHjESO042Yo=
 github.com/capossele/swearfilter v0.0.0-20210531065902-9d6e3060be1e h1:JvYL3vSz42YLHx+WpWov4XBX3DoKRn10ntzaQSk4KqU=
 github.com/capossele/swearfilter v0.0.0-20210531065902-9d6e3060be1e/go.mod h1:o9FL1PqH9TDbRHkjLVuwxoEQHt/farzdaHjESO042Yo=
+github.com/capossele/swearfilter v0.0.0-20210531151032-ba59a907cc63 h1:amfd5i4w20xPSqSrgrOR8FDHHRJsxaOuEym1QGRoiiQ=
+github.com/capossele/swearfilter v0.0.0-20210531151032-ba59a907cc63/go.mod h1:o9FL1PqH9TDbRHkjLVuwxoEQHt/farzdaHjESO042Yo=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=

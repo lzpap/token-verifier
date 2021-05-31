@@ -3,7 +3,7 @@ module github.com/capossele/asset-registry
 go 1.16
 
 require (
-	github.com/capossele/swearfilter v0.0.0-20210531065902-9d6e3060be1e
+	github.com/capossele/swearfilter v0.0.0-20210531151032-ba59a907cc63
 	github.com/cockroachdb/errors v1.8.4
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/golang/snappy v0.0.2 // indirect
