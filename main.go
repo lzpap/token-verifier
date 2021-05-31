@@ -60,6 +60,7 @@ func main() {
 	server.DELETE("/admin/:network/assets/byID/:ID", httpHandler.DeleteAssetByID, adminGroup)
 	server.DELETE("/admin/:network/assets/byName/:name", httpHandler.DeleteAssetByName, adminGroup)
 	server.POST("/admin/filters/:word", httpHandler.AddFilter, adminGroup)
+	server.DELETE("/admin/filters/:word", httpHandler.DeleteFilter, adminGroup)
 	server.GET("/admin/filters", httpHandler.LoadFilter, adminGroup)
 
 	log.Infof("Starting server ...")

@@ -139,3 +139,12 @@ func (h *HTTPHandler) AddFilter(c echo.Context) error {
 	h.filter.Add(word)
 	return c.JSON(http.StatusOK, word)
 }
+
+func (h *HTTPHandler) DeleteFilter(c echo.Context) error {
+	word := c.Param("word")
+	if len(word) == 0 {
+		return c.JSON(http.StatusBadRequest, "invalid empty-string as filter")
+	}
+	h.filter.Delete(word)
+	return c.JSON(http.StatusOK, word)
+}
