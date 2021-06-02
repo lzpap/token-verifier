@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cockroachdb/errors"
-	"github.com/labstack/echo"
-	"go.uber.org/zap"
-
 	"github.com/capossele/asset-registry/pkg/registry"
 	"github.com/capossele/asset-registry/pkg/registry/registryhttp"
 	"github.com/capossele/swearfilter"
+	"github.com/cockroachdb/errors"
+	"github.com/iotaledger/goshimmer/packages/ledgerstate"
+	"github.com/labstack/echo"
+	"go.uber.org/zap"
 )
 
 var (
@@ -49,6 +49,19 @@ func (h *HTTPHandler) SaveAsset(c echo.Context) error {
 		err = errors.Wrap(err, "failed to parse request body as JSON into an asset")
 		h.logger.Infow("Invalid http request", "error", err)
 		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(err))
+	}
+
+	_, err := ledgerstate.TransactionIDFromBase58(asset.TransactionID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("invalid TransactionID"))
+	}
+
+	if len(asset.Name) > 20 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("Asset name too long"))
+	}
+
+	if len(asset.Symbol) > 4 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("Asset symbol too long"))
 	}
 
 	// filter
