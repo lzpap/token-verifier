@@ -7,8 +7,8 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/go-resty/resty/v2"
 
-	"github.com/capossele/asset-registry/pkg/registry"
-	"github.com/capossele/asset-registry/pkg/registry/registryhttp"
+	"github.com/lzpap/token-verifier/pkg/registry"
+	"github.com/lzpap/token-verifier/pkg/registry/registryhttp"
 )
 
 type HTTPClient struct {
@@ -19,12 +19,12 @@ func NewHTTPClient(restyClient *resty.Client) *HTTPClient {
 	return &HTTPClient{client: restyClient}
 }
 
-func (c *HTTPClient) SaveAsset(ctx context.Context, network string, asset *registry.Asset) error {
+func (c *HTTPClient) SaveToken(ctx context.Context, network string, token *registry.IRC30Token) error {
 	resp, err := c.client.R().
 		SetContext(ctx).
-		SetBody(asset).
+		SetBody(token).
 		SetError(&registryhttp.ErrorResponse{}).
-		Post(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.AssetsEndpoint)
+		Post(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.TokensEndpoint)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute saveAssets HTTP call")
 	}
@@ -35,7 +35,7 @@ func (c *HTTPClient) SaveAsset(ctx context.Context, network string, asset *regis
 	return errors.Newf("saveAssets HTTP call returns an error: %s", errorResp.Error)
 }
 
-func (c *HTTPClient) LoadAssets(ctx context.Context, network string, assets ...string) error {
+func (c *HTTPClient) LoadTokens(ctx context.Context, network string, assets ...string) error {
 	assetID := ""
 	if len(assets) > 0 {
 		assetID = "/" + assets[0]
@@ -43,7 +43,7 @@ func (c *HTTPClient) LoadAssets(ctx context.Context, network string, assets ...s
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetError(&registryhttp.ErrorResponse{}).
-		Get(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.AssetsEndpoint + assetID)
+		Get(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.TokensEndpoint + assetID)
 	if err != nil {
 		return errors.Wrap(err, "failed to execute loadAssets HTTP call")
 	}
@@ -54,16 +54,16 @@ func (c *HTTPClient) LoadAssets(ctx context.Context, network string, assets ...s
 	return errors.Newf("loadAssets HTTP call returns an error: %s", errorResp.Error)
 }
 
-func (c *HTTPClient) LoadAsset(ctx context.Context, network string, asset string) (*registry.Asset, error) {
+func (c *HTTPClient) LoadToken(ctx context.Context, network string, asset string) (*registry.IRC30Token, error) {
 	assetID := "/" + asset
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetError(&registryhttp.ErrorResponse{}).
-		Get(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.AssetsEndpoint + assetID)
+		Get(registryhttp.RegistriesEndpoint + "/" + network + registryhttp.TokensEndpoint + assetID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute loadAssets HTTP call")
 	}
-	assetStruct :=  &registry.Asset{}
+	assetStruct := &registry.IRC30Token{}
 	if resp.IsSuccess() {
 		parseErr := json.Unmarshal(resp.Body(), assetStruct)
 		if parseErr != nil {

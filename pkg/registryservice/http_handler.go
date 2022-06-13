@@ -5,136 +5,161 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/capossele/asset-registry/pkg/registry"
-	"github.com/capossele/asset-registry/pkg/registry/registryhttp"
 	"github.com/capossele/swearfilter"
 	"github.com/cockroachdb/errors"
-	"github.com/iotaledger/goshimmer/packages/ledgerstate"
 	"github.com/labstack/echo"
+	"github.com/lzpap/token-verifier/pkg/registry"
+	"github.com/lzpap/token-verifier/pkg/registry/registryhttp"
 	"go.uber.org/zap"
 )
 
 var (
 	Networks = map[string]bool{
-		"pollen":   true,
-		"nectar":   true,
-		"internal": true,
-		"test":     true,
+		"alphanet": true,
+		"betanet":  false,
+		"shimmer":  false,
 	}
 )
 
 type HTTPHandler struct {
-	service registry.Service
-	logger  *zap.SugaredLogger
-
-	filter *swearfilter.SwearFilter
+	service  registry.Service
+	logger   *zap.SugaredLogger
+	verifier *Verifier
+	filter   *swearfilter.SwearFilter
 }
 
-func NewHTTPHandler(service registry.Service, logger *zap.SugaredLogger) *HTTPHandler {
-	return &HTTPHandler{service: service, logger: logger, filter: swearfilter.NewSwearFilter(true, badWords...)}
+func NewHTTPHandler(service registry.Service, logger *zap.SugaredLogger, verifier *Verifier) *HTTPHandler {
+	return &HTTPHandler{service: service, logger: logger, filter: swearfilter.NewSwearFilter(true, badWords...), verifier: verifier}
 }
 
 func networkAllowed(network string) bool {
 	return Networks[network]
 }
 
-func (h *HTTPHandler) SaveAsset(c echo.Context) error {
+// SaveToken saves a token to the registry
+// Preform the following checks:
+// 1. Perform token name length check
+// 2. Perform token symbol length check
+// 3. Perform token name swear check
+// 4. Perform token symbol swear check
+// 5. Check if tokenId is legit
+func (h *HTTPHandler) SaveToken(c echo.Context) error {
 	ctx := c.Request().Context()
 	network := c.Param("network")
 	if !networkAllowed(network) {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
-	var asset *registry.Asset
-	if err := json.NewDecoder(c.Request().Body).Decode(&asset); err != nil {
-		err = errors.Wrap(err, "failed to parse request body as JSON into an asset")
+	var token *registry.IRC30Token
+	if err := json.NewDecoder(c.Request().Body).Decode(&token); err != nil {
+		err = errors.Wrap(err, "failed to parse request body as JSON into an token")
 		h.logger.Infow("Invalid http request", "error", err)
 		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(err))
 	}
 
-	_, err := ledgerstate.TransactionIDFromBase58(asset.TransactionID)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("invalid TransactionID"))
+	// length checks
+	if len(token.Name) > 20 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("IRC30Token name too long"))
 	}
 
-	if len(asset.Name) > 20 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("Asset name too long"))
-	}
-
-	if len(asset.Symbol) > 4 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("Asset symbol too long"))
+	if len(token.Symbol) > 4 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("IRC30Token symbol too long"))
 	}
 
 	// filter
-	match, _ := h.filter.Check(asset.Name)
+	match, _ := h.filter.Check(token.Name)
 	if len(match) > 0 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", asset.Name, match))
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", token.Name, match))
 	}
-	match, _ = h.filter.Check(asset.ID)
+	match, _ = h.filter.Check(token.ID)
 	if len(match) > 0 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", asset.ID, match))
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", token.ID, match))
 	}
-	match, _ = h.filter.Check(asset.Symbol)
+	match, _ = h.filter.Check(token.Symbol)
 	if len(match) > 0 {
-		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", asset.Symbol, match))
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", token.Symbol, match))
 	}
 
-	if err := h.service.SaveAsset(ctx, network, asset); err != nil {
-		return errors.Wrap(err, "service failed to save Assets")
+	match, _ = h.filter.Check(token.Description)
+	if len(match) > 0 {
+		return c.JSON(http.StatusBadRequest, fmt.Sprintf("%s is forbidden, as contains %v", token.Description, match))
 	}
-	return c.JSON(http.StatusCreated, asset)
+
+	// semantic checks
+	// has a unique name in the registry
+	if _, err := h.service.FindTokenByName(ctx, network, token.Name); err == nil {
+		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(errors.New("token name already taken")))
+	}
+	// has a unique symbol in the registry
+	if _, err := h.service.FindTokenBySymbol(ctx, network, token.Symbol); err == nil {
+		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(errors.New("token symbol already taken")))
+	}
+	// has a unique tokenId in the registry
+	if _, err := h.service.LoadToken(ctx, network, token.ID); err == nil {
+		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(errors.New("token ID already registered")))
+	}
+	// token actually exists in the tangle, maxSupply matches the one in the foundry
+	if err := h.verifier.Verify(token); err != nil {
+		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(errors.Wrap(err, "token verification failed")))
+	}
+
+	if err := h.service.SaveToken(ctx, network, token); err != nil {
+		return c.JSON(http.StatusBadRequest, registryhttp.NewErrorResponse(errors.Wrap(err, "service failed to save Token")))
+	}
+
+	return c.JSON(http.StatusCreated, token)
 }
 
-func (h *HTTPHandler) LoadAsset(c echo.Context) error {
+func (h *HTTPHandler) LoadToken(c echo.Context) error {
 	ctx := c.Request().Context()
 	network := c.Param("network")
 	if !networkAllowed(network) {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
 	ID := c.Param("ID")
-	result, err := h.service.LoadAsset(ctx, network, ID)
+	result, err := h.service.LoadToken(ctx, network, ID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to load Asset"))
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to load IRC30Token"))
 	}
 	return c.JSON(http.StatusOK, result)
 }
 
-func (h *HTTPHandler) LoadAssets(c echo.Context) error {
+func (h *HTTPHandler) LoadTokens(c echo.Context) error {
 	ctx := c.Request().Context()
 	network := c.Param("network")
 	if !networkAllowed(network) {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
-	result, err := h.service.LoadAssets(ctx, network)
+	result, err := h.service.LoadTokens(ctx, network)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to load Assets"))
 	}
 	return c.JSON(http.StatusOK, result)
 }
 
-func (h *HTTPHandler) DeleteAssetByID(c echo.Context) error {
+func (h *HTTPHandler) DeleteTokensByID(c echo.Context) error {
 	ctx := c.Request().Context()
 	network := c.Param("network")
 	if !networkAllowed(network) {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
 	ID := c.Param("ID")
-	err := h.service.DeleteAssetByID(ctx, network, ID)
+	err := h.service.DeleteTokenByID(ctx, network, ID)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to delete the Asset"))
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to delete the IRC30Token"))
 	}
 	return c.JSON(http.StatusOK, nil)
 }
 
-func (h *HTTPHandler) DeleteAssetByName(c echo.Context) error {
+func (h *HTTPHandler) DeleteTokensByName(c echo.Context) error {
 	ctx := c.Request().Context()
 	network := c.Param("network")
 	if !networkAllowed(network) {
 		return c.JSON(http.StatusForbidden, "network not allowed")
 	}
 	name := c.Param("name")
-	err := h.service.DeleteAssetByName(ctx, network, name)
+	err := h.service.DeleteTokenByName(ctx, network, name)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to delete the Asset"))
+		return c.JSON(http.StatusNotFound, errors.Wrap(err, "service failed to delete the IRC30Token"))
 	}
 	return c.JSON(http.StatusOK, nil)
 }

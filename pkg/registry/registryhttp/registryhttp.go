@@ -2,7 +2,7 @@ package registryhttp
 
 const (
 	RegistriesEndpoint = "/registries"
-	AssetsEndpoint     = "/assets"
+	TokensEndpoint     = "/tokens"
 )
 
 type ErrorResponse struct {

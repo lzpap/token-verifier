@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/capossele/asset-registry/pkg/registryservice"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/lzpap/token-verifier/pkg/registryservice"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
@@ -34,7 +34,8 @@ func main() {
 	log = logger.Sugar()
 
 	service := registryservice.NewService(mongoDB())
-	httpHandler := registryservice.NewHTTPHandler(service, log)
+	verifier := registryservice.NewVerifier(*nodeUrl)
+	httpHandler := registryservice.NewHTTPHandler(service, log, verifier)
 
 	Server()
 
@@ -53,12 +54,12 @@ func main() {
 	})
 
 	server.GET("/", IndexRequest)
-	server.POST("/registries/:network/assets", httpHandler.SaveAsset)
-	server.GET("/registries/:network/assets", httpHandler.LoadAssets)
-	server.GET("/registries/:network/assets/:ID", httpHandler.LoadAsset)
+	server.POST("/registries/:network/tokens", httpHandler.SaveToken)
+	server.GET("/registries/:network/tokens", httpHandler.LoadTokens)
+	server.GET("/registries/:network/tokens/:ID", httpHandler.LoadToken)
 
-	server.DELETE("/admin/:network/assets/byID/:ID", httpHandler.DeleteAssetByID, adminGroup)
-	server.DELETE("/admin/:network/assets/byName/:name", httpHandler.DeleteAssetByName, adminGroup)
+	server.DELETE("/admin/:network/tokens/byID/:ID", httpHandler.DeleteTokensByID, adminGroup)
+	server.DELETE("/admin/:network/tokens/byName/:name", httpHandler.DeleteTokensByName, adminGroup)
 	server.POST("/admin/filters/:word", httpHandler.AddFilter, adminGroup)
 	server.DELETE("/admin/filters/:word", httpHandler.DeleteFilter, adminGroup)
 	server.GET("/admin/filters", httpHandler.LoadFilter, adminGroup)
